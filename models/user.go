@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"rest-api/db"
 	"rest-api/utils"
 )
@@ -10,6 +11,11 @@ type User struct {
 	Name string `binding:"required"`
 	Email string `binding:"required"`
 	Password string `binding:"required"`
+}
+
+type LoginRequest struct {
+	Email    string `json:"email" binding:"required"`
+	Password string `json:"password" binding:"required"`
 }
 
 func (u User) Save() error {
@@ -39,4 +45,25 @@ func (u User) Save() error {
 	u.ID = userId
 
     return err
+}
+
+func (u User) ValidateCredentials() error {
+	query := `
+	SELECT password FROM users WHERE email = ?
+	`
+	row := db.DB.QueryRow(query, u.Email)
+
+	var encryptedPassword string
+
+	err := row.Scan(&encryptedPassword)
+	if err != nil {
+		return err
+	}
+
+	isPasswordMatch := utils.CompareHashedPassword(u.Password, encryptedPassword)
+    if !isPasswordMatch {
+		return errors.New("invalid credentials")
+	}
+
+	return nil
 }
