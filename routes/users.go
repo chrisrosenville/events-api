@@ -1,8 +1,10 @@
 package routes
 
 import (
+	"log"
 	"net/http"
 	"rest-api/models"
+	"rest-api/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -44,7 +46,14 @@ func login(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Login successful"})
+	token, err := utils.GenerateToken(user.ID, user.Name, user.Email)
+	if err != nil {
+		log.Println("Error generating token:", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Could not generate token. Try again later."})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Login successful", "token": token})
 }
 
 func getUser(ctx *gin.Context) {}

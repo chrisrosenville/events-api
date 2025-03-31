@@ -47,20 +47,20 @@ func (u User) Save() error {
     return err
 }
 
-func (u User) ValidateCredentials() error {
+func (u *User) ValidateCredentials() (error) {
 	query := `
-	SELECT password FROM users WHERE email = ?
+	SELECT id, name, password FROM users WHERE email = ?
 	`
 	row := db.DB.QueryRow(query, u.Email)
 
-	var encryptedPassword string
+	var retrievedPassword string
 
-	err := row.Scan(&encryptedPassword)
+	err := row.Scan(&u.ID, &u.Name, &retrievedPassword)
 	if err != nil {
 		return err
 	}
 
-	isPasswordMatch := utils.CompareHashedPassword(u.Password, encryptedPassword)
+	isPasswordMatch := utils.CompareHashedPassword(u.Password, retrievedPassword)
     if !isPasswordMatch {
 		return errors.New("invalid credentials")
 	}
