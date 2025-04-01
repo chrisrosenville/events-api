@@ -3,7 +3,6 @@ package routes
 import (
 	"net/http"
 	"rest-api/models"
-	"rest-api/utils"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -36,27 +35,15 @@ func getEvent(ctx *gin.Context) {
 }
 
 func createEvent(ctx *gin.Context) {
-	token := ctx.Request.Header.Get("Authorization")
-
-	if token == "" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
-		return
-	}
-
-	userId, err := utils.VerifyToken(token)
-	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid token"})
-		return
-	}
-
 	var event models.Event;
-	err = ctx.ShouldBindJSON(&event)
+	err := ctx.ShouldBindJSON(&event)
 
 	if err != nil {
         ctx.JSON(http.StatusBadRequest, gin.H{"message": "Bad request"})
         return
     }
 
+	userId := ctx.GetInt64("userId")
 	event.UserID = userId
 
 	err = event.Save()
@@ -75,11 +62,17 @@ func updateEvent(ctx *gin.Context) {
         return
     }
 
-	_, err = models.GetEventByID(eventId)
+	userId := ctx.GetInt64("userId")
+	event, err := models.GetEventByID(eventId)
 	if err != nil {
         ctx.JSON(http.StatusNotFound, gin.H{"message": "Event not found"})
         return
     }
+
+	if event.UserID != userId {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "You are not allowed to update this event"})
+		return
+	}
 
 	var updatedEvent models.Event;
 
@@ -107,11 +100,17 @@ func deleteEvent(ctx *gin.Context) {
         return
     }
 
+	userId := ctx.GetInt64("userId")
     event, err := models.GetEventByID(eventId)
     if err != nil {
         ctx.JSON(http.StatusNotFound, gin.H{"message": "Event not found"})
         return
     }
+
+	if event.UserID != userId {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "You are not allowed to delete this event"})
+		return
+	}
 
 	err = event.Delete()
 
