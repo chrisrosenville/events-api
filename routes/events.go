@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"log"
 	"net/http"
 	"rest-api/models"
 	"rest-api/utils"
@@ -38,14 +37,13 @@ func getEvent(ctx *gin.Context) {
 
 func createEvent(ctx *gin.Context) {
 	token := ctx.Request.Header.Get("Authorization")
-	log.Println("Authorization token:", token);
 
 	if token == "" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		return
 	}
 
-	err := utils.VerifyToken(token)
+	userId, err := utils.VerifyToken(token)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid token"})
 		return
@@ -59,8 +57,7 @@ func createEvent(ctx *gin.Context) {
         return
     }
 
-	event.ID = 1
-	event.UserID = 1
+	event.UserID = userId
 
 	err = event.Save()
 	if err != nil {
